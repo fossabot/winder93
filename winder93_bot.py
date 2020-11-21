@@ -9,6 +9,7 @@ import json
 import time
 import requests
 from bs4 import BeautifulSoup
+import redis
 
 config = configparser.ConfigParser() # Настройки
 config.read("settings.ini")
