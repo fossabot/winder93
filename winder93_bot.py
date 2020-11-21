@@ -8,6 +8,7 @@ import configparser
 import json
 import time
 import requests
+import random
 from bs4 import BeautifulSoup
 import redis
 
@@ -77,10 +78,13 @@ all_users = getAllUsers()
 time.sleep(11) # 10 секунд между запросами + 1 секунда чтоб наверняка
 fwiends = getUserInfo(config['MySpace']['id'])['fwiends'][1:] # Без Тома
 users = {}
+max_fwiends = 0
 for user in all_users:
 	u = int(user)
 	if u not in [1, int(config['MySpace']['id'])] and u not in fwiends and all_users[user]['name'] != 'User Banned':
 		users[user] = all_users[user]['fwiends']
+		if users[user] > max_fwiends:
+			max_fwiends = users[user]
 
 fwiends_sorted_list = {}
 for x in fwiends:
@@ -88,5 +92,8 @@ for x in fwiends:
 
 r.zadd('priority_users', fwiends_sorted_list)
 r.zadd('users', users)
+
+r.sadd('priority_users_shuffled', random.shuffle(r.zrange('priority_users', '-inf', 'inf')))
+r.sadd('users_shuffled', random.shuffle(r.zrangebyscore('users', 2, max_fwiends // 15))) # Начинаем от 2х друзей, потому что это небольшая гарантия того, что пользователь не просто зарегистрировался и вышел
 
 shutDown()
