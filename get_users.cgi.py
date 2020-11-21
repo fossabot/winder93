@@ -37,10 +37,12 @@ u = r.srandmember('users_shuffled', limit - pu_range)
 
 if len(pu) == 0 or len(u) == 0:
 	result['success'] = False
-else:
-	for x in pu:
-		result['result'].append(int(x))
-	for x in u:
-		result['result'].append(int(x))
+	printCGI(json.dumps(result))
+
+for x in pu:
+	result['result'].append(int(x))
+for x in u:
+	result['result'].append(int(x))
+random.shuffle(result['result'])
 
 printCGI(json.dumps(result))
