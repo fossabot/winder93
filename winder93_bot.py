@@ -76,13 +76,15 @@ r = redis.Redis(host=config['Redis']['host'],
 all_users = getAllUsers()
 time.sleep(11) # 10 секунд между запросами + 1 секунда чтоб наверняка
 fwiends = getUserInfo(config['MySpace']['id'])['fwiends'][1:] # Без Тома
-users = []
+users = {}
 for user in all_users:
 	u = int(user)
 	if u not in [1, int(config['MySpace']['id'])] and u not in fwiends and all_users[user]['name'] != 'User Banned':
-		users.append({f'{u}': all_users[user]['fwiends']})
+		users[user] = all_users[user]['fwiends']
 
-fwiends_sorted_list = [{f'{x}': all_users[str(x)]['fwiends']} for x in fwiends]
+fwiends_sorted_list = {}
+for x in fwiends:
+	fwiends_sorted_list[x] = all_users[str(x)]['fwiends']
 
 r.zadd('priority_users', fwiends_sorted_list)
 r.zadd('users', users)
