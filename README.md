@@ -1,10 +1,7 @@
-# FrogHub
-Простенький автопостер ле гушек для https://myspace.windows93.net на Python 3.
+# Winder93
 
-## Установка
+Tinder-like app for [MySpace93](https://myspace.windows93.net)
 
-1. Установите зависимости командой `pip3 install -r requirements.txt`
+## Installing
 
-2. Создайте копию файла settings.example.ini и переименуйте её в settings.ini
-
-3. Следуйте комментариям в файле settings.ini
+0. No
