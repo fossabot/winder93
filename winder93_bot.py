@@ -93,7 +93,7 @@ for x in fwiends:
 r.zadd('priority_users', fwiends_sorted_list)
 r.zadd('users', users)
 
-r.sadd('priority_users_shuffled', random.shuffle(r.zrange('priority_users', '-inf', 'inf')))
+r.sadd('priority_users_shuffled', random.shuffle(r.zrangebyscore('priority_users', '-inf', '+inf')))
 r.sadd('users_shuffled', random.shuffle(r.zrangebyscore('users', 2, max_fwiends // 15))) # Начинаем от 2х друзей, потому что это небольшая гарантия того, что пользователь не просто зарегистрировался и вышел
 
 shutDown()
