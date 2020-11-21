@@ -1,8 +1,12 @@
+#!/usr/bin/env python3
+
 import sys
 import datetime
 import re
 import urllib.parse
 import configparser
+import json
+import time
 import requests
 from bs4 import BeautifulSoup
 
@@ -18,24 +22,6 @@ headers = {'content-type': 'application/x-www-form-urlencoded'}
 def logIn(login, password):
 	payload_login = "username={}&password={}&login=".format(urllib.parse.quote(login), urllib.parse.quote(password))
 	s.request("POST", baseurl + "/login.php", data=payload_login, headers=headers)
-
-def getBlogs(userId):
-	r = s.request("GET", baseurl + "/blog.php?id={}".format(userId))
-	bs = BeautifulSoup(r.text, features="html.parser")
-	cropLen = len("/blog.php?id={}&b=".format(userId))
-	return [int(a.get("href")[cropLen:])
-		for a in bs.select('div.box.blog>a')]
-
-def postBlog(title, text):
-	payload_blog = "user=1&title={}&corpus={}".format(urllib.parse.quote(title), urllib.parse.quote(text))
-	s.request("POST", baseurl + "/blogWrite.php", data=payload_blog, headers=headers)
-
-def editBlog(userId, blogId, title, text):
-	payload_blog = "user={}&title={}&corpus={}".format(userId, urllib.parse.quote(title), urllib.parse.quote(text))
-	s.request("POST", baseurl + "/blogUpdate.php?id={}&b={}".format(userId, blogId), data=payload_blog, headers=headers)
-
-def removeBlog(userId, blogId):
-	s.request("GET", baseurl + "/blogDelete.php?id={}&b={}".format(userId, blogId))
 
 def acceptFwiendRequest(fwiendId):
 	s.request("GET", baseurl + "/accept.php?id={}".format(fwiendId))
@@ -58,41 +44,46 @@ def shutDown():
 	logOut()
 	sys.exit(0)
 
+def getAllUsers():
+	r = s.request("GET", baseurl + "/api.php")
+	j = json.loads(r.text)
+	if j['success'] == 'false':
+		return {}
+	return j['fwiends']
+
+def getUserInfo(id):
+	r = s.request("GET", baseurl + "/api.php?id={}".format(id))
+	j = json.loads(r.text)
+	if j['success'] == 'false':
+		return {}
+	return j
+
+def updateDB():
+	pass
+
 logIn(config["MySpace"]["email"], config["MySpace"]["password"])
 
 for fwiend in getFwiendsRequests(config["MySpace"]["id"]):
 	print("New fwiend request:", fwiend)
 	acceptFwiendRequest(fwiend)
 
-# Постинг лягух ниже
-posted_today = int(config["General"]["posted_today"]) == 1
-if (datetime.datetime.today().weekday() != 2): # если не среда
-	print("It's not wednesday, my dudes... Not yet!")
-	if (posted_today): # если лягуху вчера запостили то можно снять флаг
-		config["General"]["posted_today"] = str(0)
-	shutDown()
-elif (posted_today): # если среда, но лягушку уже постили
-	print("It's wednesday, my dudes, but I've send a frog or toad today!")
-	shutDown()
+# Код ниже
+r = redis.Redis(host=config['Redis']['host'],
+	port=int(config['Redis']['port']),
+	db=int(config['Redis']['db']))
 
-print("It's wednesday, my dudes! AAAAAAAAAAAAAAAAAAAAAAAAAAAAA!")
+all_users = getAllUsers()
+time.sleep(11) # 10 секунд между запросами + 1 секунда чтоб наверняка
+fwiends = getUserInfo(config['MySpace']['id'])['fwiends'][1:] # Без Тома
+users = []
+for user in all_users:
+	u = int(user)
+	if u not in [1, int(config['MySpace']['id'])] and u not in fwiends and all_users[user]['name'] != 'User Banned':
+		users.append({f'{u}': all_users[user]['fwiends']})
 
-if (len(getBlogs(config["MySpace"]["id"])) == int(config["MySpace"]["max_posts"])):
-	removeBlog(config["MySpace"]["id"], config["MySpace"]["delete_on_overflow"])
+fwiends_sorted_list = [{f'{x}': all_users[str(x)]['fwiends']} for x in fwiends]
 
-content_line = ""
-with open("posts.txt", "r") as f:
-	lines = f.readlines()
-	content_line = lines.pop(int(config["General"]["last_post"]))
+r.zadd('priority_users', fwiends_sorted_list)
+r.zadd('users', users)
 
-config["General"]["last_post"] = str(int(config["General"]["last_post"]) + 1)
-
-post_title = "Wednesday post №{}".format(config["General"]["last_post"])
-
-with open(config["General"]["archive"], "a") as f:
-	f.write("{} ({}): {}".format(post_title, datetime.datetime.now().strftime("%H:%M %a %b %d %Y"), content_line))
-
-postBlog(post_title, content_line)
-
-config["General"]["posted_today"] = str(1)
 shutDown()
