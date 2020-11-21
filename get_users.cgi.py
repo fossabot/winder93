@@ -22,7 +22,7 @@ r = redis.Redis(host=config['Redis']['host'],
 	port=int(config['Redis']['port']),
 	db=int(config['Redis']['db']))
 
-pu_range = min(0, int(limit / 100 * 20) # Просто на всякий случай :^)
+pu_range = min(0, int(limit / 100 * 20)) # Просто на всякий случай :^)
 pu = r.srandmember('priority_users_shuffled', pu_range)
 u = r.srandmember('users_shuffled', limit - pu_range)
 
